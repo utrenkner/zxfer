@@ -125,6 +125,7 @@ option_T=""
 option_u=0
 option_U=0
 option_v=0
+option_w=""
 exit_status=1 # defaults to failure
 
 services=""
@@ -258,7 +259,7 @@ init_variables() {
 usage() {
 cat <<EOT
 usage: 
-     zxfer [-dFnPsUv] [-k | -e] [-b | -B] {-N path/to/src | -R path/to/src}
+     zxfer [-dFnPsUvw] [-k | -e] [-b | -B] {-N path/to/src | -R path/to/src}
            [-m [c FMRI|pattern[ FMRI|pattern]...]]] [-O user@host]
            [-D 'progress dialog options'] [-I properties,to,ignore]
            [-T user@host] [-o option1=value1,option2=value2...] [-g days]
@@ -405,64 +406,64 @@ copy_snap() {
     if [ "$copyprev" = "" ]; then
       if [ "$option_D" != "" ]; then
         if [ $option_n -eq 0 ]; then
-          SIZE_DATASET=$( $LZFS send -nPv "$copysrc" 2>&1 ) ||
+          SIZE_DATASET=$( $LZFS send $option_w -nPv "$copysrc" 2>&1 ) ||
             { echo "Error calculating estimate: $SIZE_DATASET"; beep; exit 1; }
           SIZE_EST=$( echo "$SIZE_DATASET" | grep ^size | tail -n 1 | cut -f 2 )
           echo "Estimated size is: ${SIZE_EST}"
           PROGRESS_DIALOG=$( echo "$option_D" | sed "s#%%size%%#$SIZE_EST#g" | \
             sed "s#%%title%%#$copysrc#g" )
-          $LZFS send "$copysrc" | dd obs=1048576 | dd bs=1048576 | $PROGRESS_DIALOG | \
+          $LZFS send $option_w "$copysrc" | dd obs=1048576 | dd bs=1048576 | $PROGRESS_DIALOG | \
             $RZFS receive $option_F "$copydest" || \
             { echo "Error when zfs send/receiving."; beep; exit 1; }
         else
-          SIZE_DATASET=$( $LZFS send -nPv "$copysrc" 2>&1 ) ||
+          SIZE_DATASET=$( $LZFS send $option_w -nPv "$copysrc" 2>&1 ) ||
             { echo "Error calculating estimate: $SIZE_DATASET"; beep; exit 1; }
           SIZE_EST=$( echo "$SIZE_DATASET" | grep ^size | tail -n 1 | cut -f 2 )
           echo "Estimated size is: ${SIZE_EST}"
           PROGRESS_DIALOG=$( echo $option_D | sed "s#%%size%%#$SIZE_EST#g" | \
             sed "s#%%title%%#$copysrc#g" )
-          $LZFS send -nv "$copysrc"
-          echo "$LZFS send $copysrc | dd obs=1048576 | dd bs=1048576 | $PROGRESS_DIALOG |
+          $LZFS send $option_w -nv "$copysrc"
+          echo "$LZFS send $option_w $copysrc | dd obs=1048576 | dd bs=1048576 | $PROGRESS_DIALOG |
             $RZFS receive $option_F $copydest"
         fi
       else
         if [ $option_n -eq 0 ]; then
-          $LZFS send "$copysrc" | $RZFS receive $option_F "$copydest" || \
+          $LZFS send $option_w "$copysrc" | $RZFS receive $option_F "$copydest" || \
             { echo "Error when zfs send/receiving."; beep; exit 1; }        
         else
-          echo "$LZFS send $copysrc | $RZFS receive $option_F $copydest"
+          echo "$LZFS send $option_w $copysrc | $RZFS receive $option_F $copydest"
         fi
       fi
     else
       echov "  (incremental to $copyprev.)"
       if [ "$option_D" != "" ]; then
         if [ $option_n -eq 0 ]; then
-          SIZE_DATASET=$( $LZFS send -nPv -i "$copyprev" "$copysrc" 2>&1 ) ||
+          SIZE_DATASET=$( $LZFS send $option_w -nPv -i "$copyprev" "$copysrc" 2>&1 ) ||
             { echo "Error calculating estimate: $SIZE_DATASET"; beep; exit 1; }
           SIZE_EST=$( echo "$SIZE_DATASET" | grep ^size | tail -n 1 | cut -f 2 )
           echo "Estimated size is: ${SIZE_EST}"
           PROGRESS_DIALOG=$( echo $option_D | sed "s#%%size%%#$SIZE_EST#g" | \
             sed "s#%%title%%#$copysrc#g" )
-          $LZFS send -i "$copyprev" "$copysrc" | dd obs=1048576 | dd bs=1048576 | \
+          $LZFS send $option_w -i "$copyprev" "$copysrc" | dd obs=1048576 | dd bs=1048576 | \
             $PROGRESS_DIALOG | $RZFS receive $option_F "$copydest" || \
             { echo "Error when zfs send/receiving."; beep; exit 1; }
         else
-          SIZE_DATASET=$( $LZFS send -nPv -i "$copyprev" "$copysrc" 2>&1 ) ||
+          SIZE_DATASET=$( $LZFS send $option_w -nPv -i "$copyprev" "$copysrc" 2>&1 ) ||
             { echo "Error calculating estimate: $SIZE_DATASET"; beep; exit 1; }
           SIZE_EST=$( echo "$SIZE_DATASET" | grep ^size | tail -n 1 | cut -f 2 )
           echo "Estimated size is: ${SIZE_EST}"
           PROGRESS_DIALOG=$( echo $option_D | sed "s#%%size%%#$SIZE_EST#g" | \
             sed "s#%%title%%#$copysrc#g" )
-          $LZFS send -nv -i "$copyprev" "$copysrc"
-          echo "$LZFS send -i $copyprev $copysrc | dd obs=1048576 | dd bs=1048576 | \
+          $LZFS send $option_w -nv -i "$copyprev" "$copysrc"
+          echo "$LZFS send $option_w -i $copyprev $copysrc | dd obs=1048576 | dd bs=1048576 | \
             $PROGRESS_DIALOG | $RZFS receive $option_F $copydest"      
         fi
       else
         if [ $option_n -eq 0 ]; then
-          $LZFS send -i "$copyprev" "$copysrc" | $RZFS receive $option_F "$copydest" \
+          $LZFS send $option_w -i "$copyprev" "$copysrc" | $RZFS receive $option_F "$copydest" \
             || { echo "Error when zfs send/receiving."; beep; exit 1; }
         else
-          echo "$LZFS send -i $copyprev $copysrc | $RZFS receive $option_F
+          echo "$LZFS send $option_w -i $copyprev $copysrc | $RZFS receive $option_F
             $copydest"
         fi
       fi
@@ -1867,7 +1868,7 @@ $backup_file_dir/$backup_file_extension.$is_tail\" | $option_T sh"
 #
 
 # Read command line switches
-while getopts bBc:deE:f:Fg:hiI:klL:lmnN:o:O:pPPR:sST:u:Uv?:D: i
+while getopts bBc:deE:f:Fg:hiI:klL:lmnN:o:O:pPPR:sST:u:Uvw?:D: i
 do
   case $i in
     b)
@@ -1971,6 +1972,9 @@ do
       ;;
     v)
       option_v=1
+      ;;
+    w)
+      option_w="-w"
       ;;
     \?)
       usage
